@@ -190,6 +190,33 @@ export const paymentStorage = {
   },
 };
 
+// Password management (simple hash for offline security)
+const PASSWORD_KEY = 'dental_app_password';
+const DEFAULT_PASSWORD = 'admin123'; // Default password
+
+export const passwordStorage = {
+  initialize: (): void => {
+    if (!localStorage.getItem(PASSWORD_KEY)) {
+      localStorage.setItem(PASSWORD_KEY, btoa(DEFAULT_PASSWORD));
+    }
+  },
+  verify: (password: string): boolean => {
+    const stored = localStorage.getItem(PASSWORD_KEY);
+    return stored === btoa(password);
+  },
+  change: (oldPassword: string, newPassword: string): boolean => {
+    if (!passwordStorage.verify(oldPassword)) {
+      return false;
+    }
+    localStorage.setItem(PASSWORD_KEY, btoa(newPassword));
+    return true;
+  },
+  getDefault: (): string => DEFAULT_PASSWORD,
+};
+
+// Initialize password on first load
+passwordStorage.initialize();
+
 // Backup and restore
 export const backupStorage = {
   exportAll: (): string => {
@@ -215,5 +242,20 @@ export const backupStorage = {
   },
   clearAll: (): void => {
     Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+  },
+  exportPatients: (): string => {
+    const data = {
+      patients: patientStorage.getAll(),
+      exportDate: new Date().toISOString(),
+    };
+    return JSON.stringify(data, null, 2);
+  },
+  importPatients: (jsonData: string): void => {
+    try {
+      const data = JSON.parse(jsonData);
+      if (data.patients) setItems(STORAGE_KEYS.PATIENTS, data.patients);
+    } catch (error) {
+      throw new Error('Invalid patients file format');
+    }
   },
 };

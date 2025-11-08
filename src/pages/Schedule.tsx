@@ -37,13 +37,14 @@ const Schedule = () => {
         </Button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[400px_1fr]">
-        <Card className="p-6">
+      <div className="grid gap-6 lg:grid-cols-[500px_1fr]">
+        <Card className="p-8">
+          <h2 className="text-lg font-semibold mb-4">Select Date</h2>
           <Calendar
             mode="single"
             selected={date}
             onSelect={(newDate) => newDate && setDate(newDate)}
-            className="rounded-md"
+            className="rounded-md border-0 scale-110 origin-top"
             modifiers={{
               hasAppointment: (day) => appointmentDates.has(format(day, 'yyyy-MM-dd'))
             }}

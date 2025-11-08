@@ -3,20 +3,27 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, Calendar, DollarSign, FileText } from "lucide-react";
+import { ArrowLeft, Calendar, DollarSign, FileText, Edit, Trash2 } from "lucide-react";
 import { patientStorage, treatmentStorage, appointmentStorage, paymentStorage, Patient, Treatment, Appointment, Payment } from "@/lib/storage";
 import { AddTreatmentDialog } from "@/components/AddTreatmentDialog";
 import { AddPaymentDialog } from "@/components/AddPaymentDialog";
+import { EditPatientDialog } from "@/components/EditPatientDialog";
+import { PasswordDialog } from "@/components/PasswordDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const PatientDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isTreatmentDialogOpen, setIsTreatmentDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordAction, setPasswordAction] = useState<"edit" | "delete">("edit");
 
   const loadData = () => {
     if (id) {
@@ -44,6 +51,31 @@ const PatientDetail = () => {
   const totalPaid = treatments.reduce((sum, t) => sum + t.paid, 0);
   const balance = totalTreatmentCost - totalPaid;
 
+  const handleEditClick = () => {
+    setPasswordAction("edit");
+    setShowPasswordDialog(true);
+  };
+
+  const handleDeleteClick = () => {
+    setPasswordAction("delete");
+    setShowPasswordDialog(true);
+  };
+
+  const handlePasswordSuccess = () => {
+    if (passwordAction === "edit") {
+      setIsEditDialogOpen(true);
+    } else if (passwordAction === "delete") {
+      if (id) {
+        patientStorage.delete(id);
+        toast({
+          title: "Success",
+          description: "Patient deleted successfully",
+        });
+        navigate("/patients");
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -55,6 +87,16 @@ const PatientDetail = () => {
             {patient.firstName} {patient.lastName}
           </h1>
           <p className="text-muted-foreground">{patient.phone} • {patient.email}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleEditClick}>
+            <Edit className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
+          <Button variant="destructive" onClick={handleDeleteClick}>
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
+          </Button>
         </div>
       </div>
 
@@ -255,6 +297,27 @@ const PatientDetail = () => {
         onOpenChange={setIsPaymentDialogOpen}
         patientId={patient.id}
         onPaymentAdded={loadData}
+      />
+
+      {patient && (
+        <EditPatientDialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          patient={patient}
+          onPatientUpdated={loadData}
+        />
+      )}
+
+      <PasswordDialog
+        open={showPasswordDialog}
+        onOpenChange={setShowPasswordDialog}
+        onSuccess={handlePasswordSuccess}
+        title={passwordAction === "edit" ? "Confirm Edit Patient" : "Confirm Delete Patient"}
+        description={
+          passwordAction === "edit"
+            ? "Enter your password to edit this patient's information."
+            : "This action cannot be undone. Enter your password to permanently delete this patient and all associated data."
+        }
       />
     </div>
   );

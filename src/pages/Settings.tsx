@@ -1,23 +1,19 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, Trash2, AlertTriangle } from "lucide-react";
-import { backupStorage } from "@/lib/storage";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Download, Upload, Trash2, Key, Users } from "lucide-react";
+import { backupStorage, passwordStorage } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { PasswordDialog } from "@/components/PasswordDialog";
 
 const Settings = () => {
   const { toast } = useToast();
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleExport = () => {
     const data = backupStorage.exportAll();
@@ -77,6 +73,93 @@ const Settings = () => {
     setTimeout(() => window.location.reload(), 1500);
   };
 
+  const handlePasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordStorage.change(oldPassword, newPassword)) {
+      toast({
+        title: "Success",
+        description: "Password changed successfully",
+      });
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } else {
+      toast({
+        title: "Error",
+        description: "Incorrect current password",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportPatients = () => {
+    const data = backupStorage.exportPatients();
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dental-patients-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Success",
+      description: "Patients exported successfully",
+    });
+  };
+
+  const handleImportPatients = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = event.target?.result as string;
+          backupStorage.importPatients(data);
+          toast({
+            title: "Success",
+            description: "Patients imported successfully. Refreshing page...",
+          });
+          setTimeout(() => window.location.reload(), 1500);
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Invalid patients file format",
+            variant: "destructive",
+          });
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -85,23 +168,91 @@ const Settings = () => {
       </div>
 
       <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <Key className="h-5 w-5" />
+          Security
+        </h2>
+        <div className="space-y-6">
+          <div>
+            <h3 className="font-medium mb-2">Change Password</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Update your password for sensitive operations. Default password is: {passwordStorage.getDefault()}
+            </p>
+            <form onSubmit={handlePasswordChange} className="space-y-3 max-w-md">
+              <div>
+                <Label htmlFor="oldPassword">Current Password</Label>
+                <Input
+                  id="oldPassword"
+                  type="password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit">Change Password</Button>
+            </form>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-6">
         <h2 className="text-xl font-semibold mb-4">Data Management</h2>
         
         <div className="space-y-6">
           <div>
-            <h3 className="font-medium mb-2">Backup & Restore</h3>
+            <h3 className="font-medium mb-2">Full Backup & Restore</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Export your data to a JSON file for backup or import from a previous backup.
-              All patient records, treatments, appointments, and payments will be included.
+              Export all your data to a JSON file for backup or import from a previous backup.
+              Includes all patient records, treatments, appointments, and payments.
             </p>
             <div className="flex gap-2">
               <Button onClick={handleExport}>
                 <Download className="mr-2 h-4 w-4" />
-                Export Backup
+                Export All Data
               </Button>
               <Button onClick={handleImport} variant="outline">
                 <Upload className="mr-2 h-4 w-4" />
-                Import Backup
+                Import All Data
+              </Button>
+            </div>
+          </div>
+
+          <div className="border-t pt-6">
+            <h3 className="font-medium mb-2 flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Patient Data Only
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Export or import only patient profiles without treatments, appointments, or payments.
+            </p>
+            <div className="flex gap-2">
+              <Button onClick={handleExportPatients} variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Export Patients
+              </Button>
+              <Button onClick={handleImportPatients} variant="outline">
+                <Upload className="mr-2 h-4 w-4" />
+                Import Patients
               </Button>
             </div>
           </div>
@@ -123,50 +274,14 @@ const Settings = () => {
         </div>
       </Card>
 
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">About Offline Storage</h2>
-        <div className="space-y-4 text-sm text-muted-foreground">
-          <p>
-            This application stores all your data locally in your browser using localStorage.
-            This means:
-          </p>
-          <ul className="list-disc list-inside space-y-2">
-            <li>Your data persists even after closing the browser or restarting your device</li>
-            <li>No internet connection is required to use the app</li>
-            <li>Data is stored only on this device and browser</li>
-            <li>Clearing browser data will delete all stored information</li>
-            <li>Regular backups are recommended to prevent data loss</li>
-          </ul>
-          <div className="p-4 bg-warning/10 border border-warning/20 rounded-lg flex gap-3 mt-4">
-            <AlertTriangle className="h-5 w-5 text-[hsl(var(--warning))] flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-foreground">Important Storage Notes</p>
-              <p className="text-sm mt-1">
-                localStorage has a storage limit (typically 5-10MB). For practices with large amounts of data,
-                consider regular exports and archiving old records. Always maintain external backups of critical data.
-              </p>
-            </div>
-          </div>
-        </div>
-      </Card>
 
-      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete all patient records,
-              treatments, appointments, and payments from this device.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Yes, clear all data
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <PasswordDialog
+        open={showClearDialog}
+        onOpenChange={setShowClearDialog}
+        onSuccess={handleClearAll}
+        title="Confirm Clear All Data"
+        description="This action cannot be undone. This will permanently delete all patient records, treatments, appointments, and payments from this device. Enter your password to confirm."
+      />
     </div>
   );
 };

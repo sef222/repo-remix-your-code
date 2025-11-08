@@ -19,6 +19,7 @@ interface AddAppointmentDialogProps {
 export const AddAppointmentDialog = ({ open, onOpenChange, onAppointmentAdded, selectedDate }: AddAppointmentDialogProps) => {
   const { toast } = useToast();
   const [patients, setPatients] = useState(patientStorage.getAll());
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
     patientId: "",
     date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : new Date().toISOString().split('T')[0],
@@ -32,6 +33,7 @@ export const AddAppointmentDialog = ({ open, onOpenChange, onAppointmentAdded, s
 
   useEffect(() => {
     setPatients(patientStorage.getAll());
+    setSearchTerm("");
   }, [open]);
 
   useEffect(() => {
@@ -94,6 +96,12 @@ export const AddAppointmentDialog = ({ open, onOpenChange, onAppointmentAdded, s
     onOpenChange(false);
   };
 
+  const filteredPatients = patients.filter((patient) =>
+    `${patient.firstName} ${patient.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    patient.phone.includes(searchTerm) ||
+    patient.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -103,18 +111,31 @@ export const AddAppointmentDialog = ({ open, onOpenChange, onAppointmentAdded, s
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="patientId">Patient *</Label>
-            <Select value={formData.patientId} onValueChange={(value) => setFormData({ ...formData, patientId: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select patient" />
-              </SelectTrigger>
-              <SelectContent>
-                {patients.map((patient) => (
-                  <SelectItem key={patient.id} value={patient.id}>
-                    {patient.firstName} {patient.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Input
+                placeholder="Search patients by name, phone, or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <Select value={formData.patientId} onValueChange={(value) => setFormData({ ...formData, patientId: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select patient" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredPatients.length > 0 ? (
+                    filteredPatients.map((patient) => (
+                      <SelectItem key={patient.id} value={patient.id}>
+                        {patient.firstName} {patient.lastName} - {patient.phone}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                      No patients found
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
