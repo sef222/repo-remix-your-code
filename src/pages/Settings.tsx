@@ -2,8 +2,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, Upload, Trash2, Key, Users } from "lucide-react";
-import { backupStorage, passwordStorage } from "@/lib/storage";
+import { Download, Upload, Trash2, Key, Users, Palette } from "lucide-react";
+import { backupStorage, passwordStorage, preferencesStorage } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { PasswordDialog } from "@/components/PasswordDialog";
@@ -14,6 +14,16 @@ const Settings = () => {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [primaryColor, setPrimaryColor] = useState(preferencesStorage.get().primaryColor);
+
+  const colorPresets = [
+    { name: "Ocean Blue", value: "200 98% 39%" },
+    { name: "Forest Green", value: "142 71% 45%" },
+    { name: "Royal Purple", value: "271 81% 56%" },
+    { name: "Sunset Orange", value: "24 95% 53%" },
+    { name: "Rose Pink", value: "330 81% 60%" },
+    { name: "Midnight Blue", value: "230 60% 35%" },
+  ];
 
   const handleExport = () => {
     const data = backupStorage.exportAll();
@@ -160,12 +170,55 @@ const Settings = () => {
     input.click();
   };
 
+  const handleColorChange = (color: string) => {
+    setPrimaryColor(color);
+    preferencesStorage.set({ primaryColor: color });
+    preferencesStorage.applyTheme();
+    toast({
+      title: "Success",
+      description: "Theme color updated",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Settings</h1>
         <p className="text-muted-foreground">Manage your practice data and backups</p>
       </div>
+
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <Palette className="h-5 w-5" />
+          Appearance
+        </h2>
+        <div className="space-y-6">
+          <div>
+            <h3 className="font-medium mb-2">Theme Color</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Choose your primary color for the interface. Changes apply immediately.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {colorPresets.map((preset) => (
+                <button
+                  key={preset.value}
+                  onClick={() => handleColorChange(preset.value)}
+                  className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                    primaryColor === preset.value ? 'border-primary ring-2 ring-primary/20' : 'border-border'
+                  }`}
+                  style={{ backgroundColor: `hsl(${preset.value} / 0.1)` }}
+                >
+                  <div 
+                    className="w-full h-8 rounded mb-2" 
+                    style={{ backgroundColor: `hsl(${preset.value})` }}
+                  />
+                  <p className="text-xs font-medium text-center">{preset.name}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
 
       <Card className="p-6">
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">

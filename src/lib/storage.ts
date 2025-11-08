@@ -57,16 +57,70 @@ const STORAGE_KEYS = {
   TREATMENTS: 'dental_treatments',
   APPOINTMENTS: 'dental_appointments',
   PAYMENTS: 'dental_payments',
+  PREFERENCES: 'dental_preferences',
 };
 
-// Generic storage functions
+// User Preferences
+export interface UserPreferences {
+  primaryColor: string;
+  showRevenue: boolean;
+}
+
+const DEFAULT_PREFERENCES: UserPreferences = {
+  primaryColor: '200 98% 39%', // Default blue
+  showRevenue: true,
+};
+
+export const preferencesStorage = {
+  get: (): UserPreferences => {
+    const data = localStorage.getItem(STORAGE_KEYS.PREFERENCES);
+    return data ? { ...DEFAULT_PREFERENCES, ...JSON.parse(data) } : DEFAULT_PREFERENCES;
+  },
+  set: (preferences: Partial<UserPreferences>): void => {
+    const current = preferencesStorage.get();
+    const updated = { ...current, ...preferences };
+    localStorage.setItem(STORAGE_KEYS.PREFERENCES, JSON.stringify(updated));
+  },
+  applyTheme: (): void => {
+    const prefs = preferencesStorage.get();
+    document.documentElement.style.setProperty('--primary', prefs.primaryColor);
+  },
+};
+
+// Initialize theme on load
+preferencesStorage.applyTheme();
+
+// Generic storage functions with optimization for large datasets
 function getItems<T>(key: string): T[] {
   const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : [];
+  if (!data) return [];
+  
+  try {
+    return JSON.parse(data);
+  } catch (error) {
+    console.error(`Error parsing ${key}:`, error);
+    return [];
+  }
 }
 
 function setItems<T>(key: string, items: T[]): void {
-  localStorage.setItem(key, JSON.stringify(items));
+  try {
+    // For large datasets, we could compress here
+    const data = JSON.stringify(items);
+    
+    // Check if we're approaching localStorage limits (5-10MB)
+    const estimatedSize = new Blob([data]).size;
+    if (estimatedSize > 4 * 1024 * 1024) { // 4MB warning
+      console.warn(`Storage for ${key} is getting large (${(estimatedSize / 1024 / 1024).toFixed(2)}MB). Consider archiving old records.`);
+    }
+    
+    localStorage.setItem(key, data);
+  } catch (error) {
+    if (error instanceof Error && error.name === 'QuotaExceededError') {
+      throw new Error('Storage quota exceeded. Please export and clear old data.');
+    }
+    throw error;
+  }
 }
 
 // Patient operations

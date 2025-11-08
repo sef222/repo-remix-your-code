@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Users, Calendar, DollarSign, TrendingUp, Clock } from "lucide-react";
-import { patientStorage, appointmentStorage, paymentStorage, treatmentStorage } from "@/lib/storage";
+import { Button } from "@/components/ui/button";
+import { Users, Calendar, DollarSign, TrendingUp, Clock, Eye, EyeOff } from "lucide-react";
+import { patientStorage, appointmentStorage, paymentStorage, treatmentStorage, preferencesStorage } from "@/lib/storage";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { PasswordDialog } from "@/components/PasswordDialog";
 
 const Dashboard = () => {
+  const [showRevenue, setShowRevenue] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [stats, setStats] = useState({
     totalPatients: 0,
     newPatientsThisMonth: 0,
@@ -16,6 +20,10 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
+    // Check if user has permission to view revenue
+    const prefs = preferencesStorage.get();
+    setShowRevenue(prefs.showRevenue);
+
     const patients = patientStorage.getAll();
     const appointments = appointmentStorage.getAll();
     const payments = paymentStorage.getAll();
@@ -70,6 +78,20 @@ const Dashboard = () => {
     ? ((stats.monthRevenue - stats.lastMonthRevenue) / stats.lastMonthRevenue * 100).toFixed(1)
     : 0;
 
+  const handleUnlockRevenue = () => {
+    setShowPasswordDialog(true);
+  };
+
+  const handlePasswordSuccess = () => {
+    setShowRevenue(true);
+    preferencesStorage.set({ showRevenue: true });
+  };
+
+  const handleLockRevenue = () => {
+    setShowRevenue(false);
+    preferencesStorage.set({ showRevenue: false });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -108,16 +130,47 @@ const Dashboard = () => {
 
         <Card className="p-6">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-medium text-muted-foreground">Monthly Revenue</p>
-              <h3 className="text-2xl font-bold text-foreground mt-2">${stats.monthRevenue.toFixed(2)}</h3>
-              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                {revenueGrowth}% vs last month
-              </p>
+              {showRevenue ? (
+                <>
+                  <h3 className="text-2xl font-bold text-foreground mt-2">${stats.monthRevenue.toFixed(2)}</h3>
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    {revenueGrowth}% vs last month
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-2xl font-bold text-foreground mt-2 blur-sm select-none">$9,999.99</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      onClick={handleUnlockRevenue}
+                      className="h-auto p-0 text-xs"
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      Click to unlock
+                    </Button>
+                  </p>
+                </>
+              )}
             </div>
-            <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
-              <DollarSign className="h-6 w-6 text-[hsl(var(--success))]" />
+            <div className="flex flex-col gap-2">
+              <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-[hsl(var(--success))]" />
+              </div>
+              {showRevenue && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={handleLockRevenue}
+                >
+                  <EyeOff className="h-3 w-3" />
+                </Button>
+              )}
             </div>
           </div>
         </Card>
@@ -126,7 +179,11 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Pending Payments</p>
-              <h3 className="text-2xl font-bold text-foreground mt-2">${stats.pendingPayments.toFixed(2)}</h3>
+              {showRevenue ? (
+                <h3 className="text-2xl font-bold text-foreground mt-2">${stats.pendingPayments.toFixed(2)}</h3>
+              ) : (
+                <h3 className="text-2xl font-bold text-foreground mt-2 blur-sm select-none">$999.99</h3>
+              )}
               <p className="text-xs text-muted-foreground mt-1">Outstanding balance</p>
             </div>
             <div className="h-12 w-12 rounded-full bg-warning/10 flex items-center justify-center">
@@ -150,9 +207,13 @@ const Dashboard = () => {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Average Revenue/Patient</span>
-              <span className="font-semibold">
-                ${stats.totalPatients > 0 ? (stats.monthRevenue / stats.totalPatients).toFixed(2) : '0.00'}
-              </span>
+              {showRevenue ? (
+                <span className="font-semibold">
+                  ${stats.totalPatients > 0 ? (stats.monthRevenue / stats.totalPatients).toFixed(2) : '0.00'}
+                </span>
+              ) : (
+                <span className="font-semibold blur-sm select-none">$99.99</span>
+              )}
             </div>
           </div>
         </Card>
@@ -175,6 +236,14 @@ const Dashboard = () => {
           </div>
         </Card>
       </div>
+
+      <PasswordDialog
+        open={showPasswordDialog}
+        onOpenChange={setShowPasswordDialog}
+        onSuccess={handlePasswordSuccess}
+        title="Unlock Revenue Data"
+        description="Enter your password to view financial information."
+      />
     </div>
   );
 };
