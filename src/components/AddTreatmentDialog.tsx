@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { treatmentStorage } from "@/lib/storage";
+import { treatmentStorage, procedureStorage, treatmentPlanStorage } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
+import { useState as useReactState } from "react";
 
 interface AddTreatmentDialogProps {
   open: boolean;
@@ -26,6 +27,23 @@ export const AddTreatmentDialog = ({ open, onOpenChange, patientId, onTreatmentA
     paid: "",
     status: "completed" as "completed" | "planned" | "ongoing",
   });
+
+  const procedures = procedureStorage.getAll();
+  const treatmentPlans = treatmentPlanStorage.getAll();
+  const [selectedTemplate, setSelectedTemplate] = useReactState<string>("");
+
+  const handleTemplateSelect = (templateId: string) => {
+    const procedure = procedures.find(p => p.id === templateId);
+    if (procedure) {
+      setFormData({
+        ...formData,
+        procedure: procedure.name,
+        cost: procedure.defaultCost.toString(),
+        notes: procedure.description || "",
+      });
+      setSelectedTemplate("");
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +94,24 @@ export const AddTreatmentDialog = ({ open, onOpenChange, patientId, onTreatmentA
           <DialogTitle>Add Treatment</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {procedures.length > 0 && (
+            <div>
+              <Label htmlFor="template">Quick Select from Library</Label>
+              <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a procedure template..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {procedures.map((proc) => (
+                    <SelectItem key={proc.id} value={proc.id}>
+                      {proc.name} - ${proc.defaultCost.toFixed(2)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div>
             <Label htmlFor="date">Date *</Label>
             <Input

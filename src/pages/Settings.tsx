@@ -2,11 +2,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, Upload, Trash2, Key, Users, Palette } from "lucide-react";
+import { Download, Upload, Trash2, Key, Users, Palette, FileText } from "lucide-react";
 import { backupStorage, passwordStorage, preferencesStorage } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { PasswordDialog } from "@/components/PasswordDialog";
+import { TreatmentTemplatesManager } from "@/components/TreatmentTemplatesManager";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -187,6 +189,14 @@ const Settings = () => {
         <p className="text-muted-foreground">Manage your practice data and backups</p>
       </div>
 
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList>
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="templates">Treatment Templates</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general" className="space-y-6 mt-6">
+
       <Card className="p-6">
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
           <Palette className="h-5 w-5" />
@@ -328,13 +338,19 @@ const Settings = () => {
       </Card>
 
 
-      <PasswordDialog
-        open={showClearDialog}
-        onOpenChange={setShowClearDialog}
-        onSuccess={handleClearAll}
-        title="Confirm Clear All Data"
-        description="This action cannot be undone. This will permanently delete all patient records, treatments, appointments, and payments from this device. Enter your password to confirm."
-      />
+        <PasswordDialog
+          open={showClearDialog}
+          onOpenChange={setShowClearDialog}
+          onSuccess={handleClearAll}
+          title="Confirm Clear All Data"
+          description="This action cannot be undone. This will permanently delete all patient records, treatments, appointments, and payments from this device. Enter your password to confirm."
+        />
+        </TabsContent>
+
+        <TabsContent value="templates" className="mt-6">
+          <TreatmentTemplatesManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

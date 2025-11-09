@@ -52,12 +52,38 @@ export interface Payment {
   notes: string;
 }
 
+export interface ProcedureTemplate {
+  id: string;
+  name: string;
+  code?: string;
+  defaultCost: number;
+  duration?: number; // in minutes
+  category: string;
+  description?: string;
+}
+
+export interface TreatmentPlan {
+  id: string;
+  name: string;
+  description: string;
+  procedures: {
+    procedureId: string;
+    procedureName: string;
+    tooth?: string;
+    cost: number;
+    notes?: string;
+  }[];
+  totalCost: number;
+}
+
 const STORAGE_KEYS = {
   PATIENTS: 'dental_patients',
   TREATMENTS: 'dental_treatments',
   APPOINTMENTS: 'dental_appointments',
   PAYMENTS: 'dental_payments',
   PREFERENCES: 'dental_preferences',
+  PROCEDURES: 'dental_procedures',
+  TREATMENT_PLANS: 'dental_treatment_plans',
 };
 
 // User Preferences
@@ -241,6 +267,68 @@ export const paymentStorage = {
   delete: (id: string): void => {
     const payments = getItems<Payment>(STORAGE_KEYS.PAYMENTS);
     setItems(STORAGE_KEYS.PAYMENTS, payments.filter(p => p.id !== id));
+  },
+};
+
+// Procedure template operations
+export const procedureStorage = {
+  getAll: (): ProcedureTemplate[] => getItems<ProcedureTemplate>(STORAGE_KEYS.PROCEDURES),
+  getById: (id: string): ProcedureTemplate | undefined => {
+    const procedures = getItems<ProcedureTemplate>(STORAGE_KEYS.PROCEDURES);
+    return procedures.find(p => p.id === id);
+  },
+  add: (procedure: Omit<ProcedureTemplate, 'id'>): ProcedureTemplate => {
+    const procedures = getItems<ProcedureTemplate>(STORAGE_KEYS.PROCEDURES);
+    const newProcedure: ProcedureTemplate = {
+      ...procedure,
+      id: Date.now().toString(),
+    };
+    procedures.push(newProcedure);
+    setItems(STORAGE_KEYS.PROCEDURES, procedures);
+    return newProcedure;
+  },
+  update: (id: string, updates: Partial<ProcedureTemplate>): void => {
+    const procedures = getItems<ProcedureTemplate>(STORAGE_KEYS.PROCEDURES);
+    const index = procedures.findIndex(p => p.id === id);
+    if (index !== -1) {
+      procedures[index] = { ...procedures[index], ...updates };
+      setItems(STORAGE_KEYS.PROCEDURES, procedures);
+    }
+  },
+  delete: (id: string): void => {
+    const procedures = getItems<ProcedureTemplate>(STORAGE_KEYS.PROCEDURES);
+    setItems(STORAGE_KEYS.PROCEDURES, procedures.filter(p => p.id !== id));
+  },
+};
+
+// Treatment plan operations
+export const treatmentPlanStorage = {
+  getAll: (): TreatmentPlan[] => getItems<TreatmentPlan>(STORAGE_KEYS.TREATMENT_PLANS),
+  getById: (id: string): TreatmentPlan | undefined => {
+    const plans = getItems<TreatmentPlan>(STORAGE_KEYS.TREATMENT_PLANS);
+    return plans.find(p => p.id === id);
+  },
+  add: (plan: Omit<TreatmentPlan, 'id'>): TreatmentPlan => {
+    const plans = getItems<TreatmentPlan>(STORAGE_KEYS.TREATMENT_PLANS);
+    const newPlan: TreatmentPlan = {
+      ...plan,
+      id: Date.now().toString(),
+    };
+    plans.push(newPlan);
+    setItems(STORAGE_KEYS.TREATMENT_PLANS, plans);
+    return newPlan;
+  },
+  update: (id: string, updates: Partial<TreatmentPlan>): void => {
+    const plans = getItems<TreatmentPlan>(STORAGE_KEYS.TREATMENT_PLANS);
+    const index = plans.findIndex(p => p.id === id);
+    if (index !== -1) {
+      plans[index] = { ...plans[index], ...updates };
+      setItems(STORAGE_KEYS.TREATMENT_PLANS, plans);
+    }
+  },
+  delete: (id: string): void => {
+    const plans = getItems<TreatmentPlan>(STORAGE_KEYS.TREATMENT_PLANS);
+    setItems(STORAGE_KEYS.TREATMENT_PLANS, plans.filter(p => p.id !== id));
   },
 };
 
