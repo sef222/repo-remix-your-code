@@ -90,11 +90,22 @@ const STORAGE_KEYS = {
 export interface UserPreferences {
   primaryColor: string;
   showRevenue: boolean;
+  clinicName: string;
+  clinicAddress: string;
+  clinicPhone: string;
+  clinicEmail: string;
+  clinicLogo?: string;
+  taxRate: number;
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   primaryColor: '200 98% 39%', // Default blue
   showRevenue: true,
+  clinicName: 'Dental Practice',
+  clinicAddress: '',
+  clinicPhone: '',
+  clinicEmail: '',
+  taxRate: 0,
 };
 
 export const preferencesStorage = {

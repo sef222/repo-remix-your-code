@@ -3,12 +3,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Calendar, DollarSign, FileText, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, DollarSign, FileText, Edit, Trash2, FileDown } from "lucide-react";
 import { patientStorage, treatmentStorage, appointmentStorage, paymentStorage, Patient, Treatment, Appointment, Payment } from "@/lib/storage";
 import { AddTreatmentDialog } from "@/components/AddTreatmentDialog";
 import { AddPaymentDialog } from "@/components/AddPaymentDialog";
 import { EditPatientDialog } from "@/components/EditPatientDialog";
 import { PasswordDialog } from "@/components/PasswordDialog";
+import { InvoiceGenerator } from "@/components/InvoiceGenerator";
 import { useToast } from "@/hooks/use-toast";
 
 const PatientDetail = () => {
@@ -24,6 +25,7 @@ const PatientDetail = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [passwordAction, setPasswordAction] = useState<"edit" | "delete">("edit");
+  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
 
   const loadData = () => {
     if (id) {
@@ -89,6 +91,10 @@ const PatientDetail = () => {
           <p className="text-muted-foreground">{patient.phone} • {patient.email}</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(true)}>
+            <FileDown className="mr-2 h-4 w-4" />
+            Generate Invoice
+          </Button>
           <Button variant="outline" onClick={handleEditClick}>
             <Edit className="mr-2 h-4 w-4" />
             Edit
@@ -318,6 +324,14 @@ const PatientDetail = () => {
             ? "Enter your password to edit this patient's information."
             : "This action cannot be undone. Enter your password to permanently delete this patient and all associated data."
         }
+      />
+
+      <InvoiceGenerator
+        open={isInvoiceDialogOpen}
+        onOpenChange={setIsInvoiceDialogOpen}
+        patient={patient}
+        treatments={treatments}
+        payments={payments}
       />
     </div>
   );

@@ -2,7 +2,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, Upload, Trash2, Key, Users, Palette, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Download, Upload, Trash2, Key, Users, Palette, FileText, Building2 } from "lucide-react";
 import { backupStorage, passwordStorage, preferencesStorage } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -17,6 +18,13 @@ const Settings = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [primaryColor, setPrimaryColor] = useState(preferencesStorage.get().primaryColor);
+  const [clinicSettings, setClinicSettings] = useState({
+    clinicName: preferencesStorage.get().clinicName,
+    clinicAddress: preferencesStorage.get().clinicAddress,
+    clinicPhone: preferencesStorage.get().clinicPhone,
+    clinicEmail: preferencesStorage.get().clinicEmail,
+    taxRate: preferencesStorage.get().taxRate.toString(),
+  });
 
   const colorPresets = [
     { name: "Ocean Blue", value: "200 98% 39%" },
@@ -182,6 +190,20 @@ const Settings = () => {
     });
   };
 
+  const handleClinicSettingsSave = () => {
+    preferencesStorage.set({
+      clinicName: clinicSettings.clinicName,
+      clinicAddress: clinicSettings.clinicAddress,
+      clinicPhone: clinicSettings.clinicPhone,
+      clinicEmail: clinicSettings.clinicEmail,
+      taxRate: parseFloat(clinicSettings.taxRate) || 0,
+    });
+    toast({
+      title: "Success",
+      description: "Clinic information updated",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -192,6 +214,7 @@ const Settings = () => {
       <Tabs defaultValue="general" className="w-full">
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="clinic">Clinic Info</TabsTrigger>
           <TabsTrigger value="templates">Treatment Templates</TabsTrigger>
         </TabsList>
 
@@ -345,6 +368,77 @@ const Settings = () => {
           title="Confirm Clear All Data"
           description="This action cannot be undone. This will permanently delete all patient records, treatments, appointments, and payments from this device. Enter your password to confirm."
         />
+        </TabsContent>
+
+        <TabsContent value="clinic" className="space-y-6 mt-6">
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Clinic Information & Branding
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              This information will appear on patient invoices and printed documents.
+            </p>
+            <div className="space-y-4 max-w-2xl">
+              <div>
+                <Label htmlFor="clinicName">Clinic Name *</Label>
+                <Input
+                  id="clinicName"
+                  value={clinicSettings.clinicName}
+                  onChange={(e) => setClinicSettings({ ...clinicSettings, clinicName: e.target.value })}
+                  placeholder="Your Dental Practice Name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="clinicAddress">Clinic Address</Label>
+                <Textarea
+                  id="clinicAddress"
+                  value={clinicSettings.clinicAddress}
+                  onChange={(e) => setClinicSettings({ ...clinicSettings, clinicAddress: e.target.value })}
+                  placeholder="123 Main Street, City, State, ZIP"
+                  rows={2}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="clinicPhone">Phone Number</Label>
+                  <Input
+                    id="clinicPhone"
+                    value={clinicSettings.clinicPhone}
+                    onChange={(e) => setClinicSettings({ ...clinicSettings, clinicPhone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="clinicEmail">Email Address</Label>
+                  <Input
+                    id="clinicEmail"
+                    type="email"
+                    value={clinicSettings.clinicEmail}
+                    onChange={(e) => setClinicSettings({ ...clinicSettings, clinicEmail: e.target.value })}
+                    placeholder="contact@clinic.com"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="taxRate">Tax Rate (%)</Label>
+                <Input
+                  id="taxRate"
+                  type="number"
+                  step="0.01"
+                  value={clinicSettings.taxRate}
+                  onChange={(e) => setClinicSettings({ ...clinicSettings, taxRate: e.target.value })}
+                  placeholder="0.00"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enter tax rate as percentage (e.g., 8.5 for 8.5%)
+                </p>
+              </div>
+              <Button onClick={handleClinicSettingsSave}>
+                Save Clinic Information
+              </Button>
+            </div>
+          </Card>
         </TabsContent>
 
         <TabsContent value="templates" className="mt-6">
