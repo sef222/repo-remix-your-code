@@ -28,12 +28,55 @@ export const InvoiceGenerator = ({ open, onOpenChange, patient, treatments, paym
   const amountPaid = totalPayments;
   const balance = total - amountPaid;
 
-  const handlePrint = () => {
-    window.print();
-    toast({
-      title: "Printing",
-      description: "Invoice sent to printer",
-    });
+  const handlePrint = async () => {
+    if (!printRef.current) return;
+    
+    try {
+      toast({
+        title: "Generating PDF",
+        description: "Preparing invoice for printing...",
+      });
+
+      // Capture the invoice div as a canvas
+      const canvas = await html2canvas(printRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      // Calculate PDF dimensions
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      
+      // Open PDF in new window and trigger print
+      const pdfBlob = pdf.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      
+      const printWindow = window.open(pdfUrl);
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+          toast({
+            title: "Ready to Print",
+            description: "Print dialog opened",
+          });
+        };
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF for printing. Please try again.",
+        variant: "destructive",
+      });
+      console.error("PDF generation error:", error);
+    }
   };
 
   const handleDownload = async () => {
