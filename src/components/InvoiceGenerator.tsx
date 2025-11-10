@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Patient, Treatment, Payment, preferencesStorage } from "@/lib/storage";
 import { Printer, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 interface InvoiceGeneratorProps {
   open: boolean;
@@ -34,11 +36,50 @@ export const InvoiceGenerator = ({ open, onOpenChange, patient, treatments, paym
     });
   };
 
-  const handleDownload = () => {
-    toast({
-      title: "Download",
-      description: "Invoice download functionality would be implemented here with a PDF library",
-    });
+  const handleDownload = async () => {
+    if (!printRef.current) return;
+    
+    try {
+      toast({
+        title: "Generating PDF",
+        description: "Please wait while we generate your invoice...",
+      });
+
+      // Capture the invoice div as a canvas
+      const canvas = await html2canvas(printRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      // Calculate PDF dimensions
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      
+      // Generate filename with patient name and date
+      const fileName = `Invoice_${patient.firstName}_${patient.lastName}_${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      pdf.save(fileName);
+
+      toast({
+        title: "Success",
+        description: "Invoice downloaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+      console.error("PDF generation error:", error);
+    }
   };
 
   return (
